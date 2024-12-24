@@ -34,19 +34,19 @@ jobs:
             inner_zip=$(find "downloads/extracted/$filename" -name '*.zip')
             if [ -n "$inner_zip" ]; then
               unzip -q "$inner_zip" -d "downloads/extracted/$filename/inner"
-              vendor_img_path=$(find "downloads/extracted/$filename/inner" -name vendor.img)
-              if [ -n "$vendor_img_path" ]; then
-                mkdir -p downloads/extracted/vendor_mount
-                simg2img "$vendor_img_path" downloads/extracted/vendor.raw
-                mkdir downloads/extracted/vendor_mount_temp
-                sudo mount -o loop downloads/extracted/vendor.raw downloads/extracted/vendor_mount_temp
+              system_img_path=$(find "downloads/extracted/$filename/inner" -name system.img)
+              if [ -n "$system_img_path" ]; then
+                mkdir -p downloads/extracted/system_mount
+                simg2img "$system_img_path" downloads/extracted/system.raw
+                mkdir downloads/extracted/system_mount_temp
+                sudo mount -o loop downloads/extracted/system.raw downloads/extracted/system_mount_temp
 
-                if [ -f downloads/extracted/vendor_mount_temp/build.prop ]; then
-                  cp downloads/extracted/vendor_mount_temp/build.prop downloads/extracted/
+                if [ -f downloads/extracted/system_mount_temp/build.prop ]; then
+                  cp downloads/extracted/system_mount_temp/build.prop downloads/extracted/
                 fi
 
-                sudo umount downloads/extracted/vendor_mount_temp
-                rm -r downloads/extracted/vendor_mount_temp downloads/extracted/vendor.raw
+                sudo umount downloads/extracted/system_mount_temp
+                rm -r downloads/extracted/system_mount_temp downloads/extracted/system.raw
               fi
             fi
           done < links.txt
