@@ -25,6 +25,7 @@ jobs:
       - name: Download and extract build.prop
         run: |
           mkdir -p downloads
+          mkdir -p downloads/extracted
           while read -r link; do
             filename=$(basename "$link")
             wget -q "$link" -O "downloads/$filename"
