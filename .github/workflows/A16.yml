@@ -1,4 +1,4 @@
-name: Extract A16 Pixel Beta Build Props
+name: Extract Build Props
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
         id: fetch_links
         run: |
           curl -s https://developer.android.com/about/versions/16/download | \
-          grep -oP '(?<=href="https://developer.android.com)[^"].*\.zip' > links.txt
+          grep -oP '(?<=href="https://developer.android.com)[^"]*\.zip' > links.txt
 
       - name: Download and extract build.prop
         run: |
@@ -41,7 +41,7 @@ jobs:
                 sudo mount -o loop downloads/extracted/vendor.raw downloads/extracted/vendor_mount_temp
 
                 if [ -f downloads/extracted/vendor_mount_temp/build.prop ]; then
-                  cp downloads/extracted/vendor_mount_temp/build.prop downloads/extracted/$filename.build.prop
+                  cp downloads/extracted/vendor_mount_temp/build.prop downloads/extracted/
                 fi
 
                 sudo umount downloads/extracted/vendor_mount_temp
@@ -53,7 +53,7 @@ jobs:
       - name: Process build.prop files
         run: |
           mkdir -p build_props
-          find downloads/extracted -name '*.build.prop' | while read -r build_prop_path; do
+          find downloads/extracted -name build.prop | while read -r build_prop_path; do
             codename=$(basename $(dirname "$build_prop_path"))
             manufacturer=$(grep -m 1 'ro.product.manufacturer=' "$build_prop_path" | cut -d= -f2)
             model=$(grep -m 1 'ro.product.model=' "$build_prop_path" | cut -d= -f2)
@@ -67,10 +67,9 @@ jobs:
             type=$(grep -m 1 'ro.build.type=' "$build_prop_path" | cut -d= -f2)
             tags=$(grep -m 1 'ro.build.tags=' "$build_prop_path" | cut -d= -f2)
             security_patch=$(grep -m 1 'ro.build.version.security_patch=' "$build_prop_path" | cut -d= -f2)
+            #initial_sdk_int=$(grep -m 1 'ro.product.first_api_level=' "$build_prop_path" | cut -d= -f2)
 
-            json_file="build_props/${codename}.json"
-
-            cat <<EOF > "$json_file"
+            cat <<EOF > "build_props/$codename.json"
             {
               "MANUFACTURER": "$manufacturer",
               "MODEL": "$model",
@@ -89,16 +88,10 @@ jobs:
             EOF
             done
 
-      - name: Create a GitHub Release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ steps.fetch_links.outputs.id }}
-          release_name: ${{ steps.fetch_links.outputs.id }}
-          draft: false
-          prerelease: false
-
-      - name: Upload JSON files to Release
+      - name: Commit and push JSON files
         run: |
-          for json_file in build_props/*.json; do
-            gh release upload ${{ steps.create-release.outputs.tag_name }} "$json_file" --repo "$GITHUB_REPOSITORY" --name "$(basename "$json_file")" --content-type application/json
-          done
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add build_props/*.json
+          git commit -m "Add build.prop JSON files"
+          git push
