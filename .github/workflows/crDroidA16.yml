@@ -1,0 +1,169 @@
+name: A16 certified props extraction
+
+on:
+  workflow_dispatch:
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip p7zip
+
+      - name: Fetch Android download links
+        id: fetch_links
+        run: |
+          curl -s https://developer.android.com/about/versions/16/download | \
+          grep -oP '(?<=href=")[^"]*\.zip' > links.txt
+
+      - name: Download and extract build.prop
+        run: |
+          mkdir -p downloads
+          mkdir -p extracted
+          mkdir -p extracted/system_mount
+      
+          while read -r link; do
+            zipfile=$(basename "$link")
+            filename="${zipfile%.*}"
+      
+            echo "Processing $link..."
+      
+            # Download the zip file
+            wget -q "$link" -O "downloads/$zipfile"
+            if [ ! -f "downloads/$zipfile" ]; then
+              echo "Failed to download $zipfile. Skipping..."
+              continue
+            fi
+      
+            # Extract the zip file
+            mkdir -p "extracted/$filename"
+            unzip -q -j "downloads/$zipfile" -d "extracted/$filename" || { echo "Failed to unzip $zipfile. Skipping..."; rm -rf "downloads/$zipfile" "extracted/$filename"; continue; }
+      
+            # Find any inner zip files and process them
+            inner_zip=$(find "extracted/$filename" -name '*.zip')
+            if [ -n "$inner_zip" ]; then
+              mkdir -p "extracted/$filename/inner"
+              unzip -q -j "$inner_zip" -d "extracted/$filename/inner" || { echo "Failed to unzip inner zip for $filename. Skipping..."; rm -rf "extracted/$filename"; continue; }
+      
+              vendor_img_path=$(find "extracted/$filename/inner" -name vendor.img)
+              if [ -n "$vendor_img_path" ]; then
+                mkdir -p "$filename"
+                # extract build.prop
+                7z x "$vendor_img_path" build.prop  -so > "$filename/build.prop" || { echo "Failed to mount system.img for $filename. Skipping..."; continue; }
+              else
+                echo "No vendor.img found for $filename. Skipping..."
+              fi
+      
+              # Clean up inner zip extraction
+              rm -rf "extracted/$filename/inner"
+            else
+              echo "No inner zip found for $filename. Skipping..."
+            fi
+      
+            # Clean up files after processing
+            rm -rf "downloads/$zipfile"
+            rm -rf "extracted/$filename"
+      
+            echo "Completed processing $filename."
+      
+          done < links.txt
+      
+          # Final cleanup
+          rm -rf extracted/system_mount
+      
+
+      - name: Process build.prop files
+        id: process_props
+        run: |
+          mkdir -p build_props
+          # Adjusted to find build.prop files in the current structure
+          find . -type f -name "build.prop" | while read -r build_prop_path; do
+            codename=$(basename $(dirname "$build_prop_path"))
+            manufacturer=$(sudo grep -m 1 'ro.product.vendor.manufacturer=' "$build_prop_path" | cut -d= -f2)
+            model=$(sudo grep -m 1 'ro.product.vendor.model=' "$build_prop_path" | cut -d= -f2)
+            fingerprint=$(sudo grep -m 1 'ro.vendor.build.fingerprint=' "$build_prop_path" | cut -d= -f2)
+            brand=$(sudo grep -m 1 'ro.product.vendor.brand=' "$build_prop_path" | cut -d= -f2)
+            product=$(sudo grep -m 1 'ro.product.vendor.name=' "$build_prop_path" | cut -d= -f2)
+            device=$(sudo grep -m 1 'ro.product.vendor.device=' "$build_prop_path" | cut -d= -f2)
+            version_release=$(sudo grep -m 1 'ro.vendor.build.version.release=' "$build_prop_path" | cut -d= -f2)
+            id=$(sudo grep -m 1 'ro.vendor.build.id=' "$build_prop_path" | cut -d= -f2)
+            version_incremental=$(sudo grep -m 1 'ro.vendor.build.version.incremental=' "$build_prop_path" | cut -d= -f2)
+            type=$(sudo grep -m 1 'ro.vendor.build.type=' "$build_prop_path" | cut -d= -f2)
+            tags=$(sudo grep -m 1 'ro.vendor.build.tags=' "$build_prop_path" | cut -d= -f2)
+            security_patch=$(sudo grep -m 1 'ro.vendor.build.security_patch=' "$build_prop_path" | cut -d= -f2)
+      
+          # Create the JSON file with the device name
+          echo '{
+           "MANUFACTURER": "'"$manufacturer"'",
+           "MODEL": "'"$model"'",
+           "FINGERPRINT": "'"$fingerprint"'",
+           "BRAND": "'"$brand"'",
+           "PRODUCT": "'"$product"'",
+           "DEVICE": "'"$device"'",
+           "VERSION.RELEASE": "'"$version_release"'",
+           "ID": "'"$id"'",
+           "VERSION.INCREMENTAL": "'"$version_incremental"'",
+           "TYPE": "'"$type"'",
+           "TAGS": "'"$tags"'",
+           "VERSION.SECURITY_PATCH": "'"$security_patch"'",
+           "VERSION.DEVICE_INITIAL_SDK_INT": "21"
+          }' > "build_props/$codename.json"
+                last_id=$id
+                # Delete the processed build.prop file
+                rm -f "$build_prop_path"
+              done
+          echo "Computed last_id: $last_id"
+
+      - name: Grab ID for Release
+        run: |
+          # Get the shared ID from one of the JSON files
+          shared_id=$(jq -r '.ID' $(find build_props -type f -name "*.json" | head -n 1))
+          echo "last_id=$shared_id" >> $GITHUB_ENV
+          echo "Computed last_id: $last_id"
+
+          # Ensure the ID was successfully retrieved
+          if [ -z "$shared_id" ]; then
+            echo "Error: Could not retrieve shared ID from JSON files. Exiting."
+            exit 1
+          fi
+
+
+      - name: Upload build.prop JSON files as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build_props
+          path: build_props/
+
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.last_id }}
+          release_name: crDroid A16 ${{ env.last_id }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload .props Files
+        run: |
+            UPLOAD_URL="${{ steps.create-release.outputs.upload_url }}"
+            UPLOAD_URL="${UPLOAD_URL%\{*}"  # strip the {?name,label} template
+        
+            for file in build_props/*.json; do
+              echo "Uploading $file..."
+              curl -X POST \
+                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary @"$file" \
+                "$UPLOAD_URL?name=$(basename "$file")"
+            done
+
+
