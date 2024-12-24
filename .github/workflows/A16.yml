@@ -44,7 +44,6 @@ jobs:
 
                 if [ -f downloads/extracted/system_mount/system/build.prop ]; then
                   sudo cp downloads/extracted/system_mount/system/build.prop downloads/$filename/
-                  chmod a+rwx downloads/$filename/build.prop
                 fi
 
                 sudo umount downloads/extracted/system_mount
