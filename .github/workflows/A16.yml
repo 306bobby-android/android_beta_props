@@ -22,35 +22,69 @@ jobs:
           curl -s https://developer.android.com/about/versions/16/download | \
           grep -oP '(?<=href=")[^"]*\.zip' > links.txt
 
-      - name: Download and extract build.prop
-        run: |
-          mkdir -p downloads
-          mkdir -p downloads/extracted
-          while read -r link; do
-            zipfile=$(basename "$link")
-            filename="${zipfile%.*}"
-            wget -q "$link" -O "downloads/$zipfile"
-            mkdir -p "extracted/$filename"
-            unzip -q -j "downloads/$zipfile" -d "extracted/$filename"
+- name: Download and extract build.prop
+  run: |
+    mkdir -p downloads
+    mkdir -p extracted
+    mkdir -p extracted/system_mount
 
-            inner_zip=$(find "extracted/$filename" -name '*.zip')
-            if [ -n "$inner_zip" ]; then
-              unzip -q -j "$inner_zip" -d "extracted/$filename/inner"
-              system_img_path=$(find "extracted/$filename/inner" -name system.img)
-              if [ -n "$system_img_path" ]; then
-                mkdir -p extracted/system_mount
-                sudo mount -o ro "$system_img_path" extracted/system_mount
-                mkdir -p "$filename"
+    while read -r link; do
+      zipfile=$(basename "$link")
+      filename="${zipfile%.*}"
 
-                if [ -f extracted/system_mount/system/build.prop ]; then
-                  sudo cp extracted/system_mount/system/build.prop $filename/
-                fi
+      echo "Processing $link..."
 
-                sudo umount extracted/system_mount
-                rm -rf downloads
-              fi
-            fi
-          done < links.txt
+      # Download the zip file
+      wget -q "$link" -O "downloads/$zipfile"
+      if [ ! -f "downloads/$zipfile" ]; then
+        echo "Failed to download $zipfile. Skipping..."
+        continue
+      fi
+
+      # Extract the zip file
+      mkdir -p "extracted/$filename"
+      unzip -q -j "downloads/$zipfile" -d "extracted/$filename" || { echo "Failed to unzip $zipfile. Skipping..."; rm -rf "downloads/$zipfile" "extracted/$filename"; continue; }
+
+      # Find any inner zip files and process them
+      inner_zip=$(find "extracted/$filename" -name '*.zip')
+      if [ -n "$inner_zip" ]; then
+        mkdir -p "extracted/$filename/inner"
+        unzip -q -j "$inner_zip" -d "extracted/$filename/inner" || { echo "Failed to unzip inner zip for $filename. Skipping..."; rm -rf "extracted/$filename"; continue; }
+
+        system_img_path=$(find "extracted/$filename/inner" -name system.img)
+        if [ -n "$system_img_path" ]; then
+          # Mount and extract build.prop
+          sudo mount -o ro "$system_img_path" extracted/system_mount || { echo "Failed to mount system.img for $filename. Skipping..."; rm -rf "extracted/$filename"; continue; }
+
+          if [ -f extracted/system_mount/system/build.prop ]; then
+            mkdir -p "$filename"
+            sudo cp extracted/system_mount/system/build.prop "$filename/" || echo "Failed to copy build.prop for $filename."
+          else
+            echo "build.prop not found for $filename."
+          fi
+
+          sudo umount extracted/system_mount
+        else
+          echo "No system.img found for $filename. Skipping..."
+        fi
+
+        # Clean up inner zip extraction
+        rm -rf "extracted/$filename/inner"
+      else
+        echo "No inner zip found for $filename. Skipping..."
+      fi
+
+      # Clean up files after processing
+      rm -rf "downloads/$zipfile"
+      rm -rf "extracted/$filename"
+
+      echo "Completed processing $filename."
+
+    done < links.txt
+
+    # Final cleanup
+    rm -rf extracted/system_mount
+
 
       - name: Process build.prop files
         run: |
