@@ -71,23 +71,23 @@ jobs:
             json_file="build_props/${codename}.json"
 
             cat <<EOF > "$json_file"
-{
-  "MANUFACTURER": "$manufacturer",
-  "MODEL": "$model",
-  "FINGERPRINT": "$fingerprint",
-  "BRAND": "$brand",
-  "PRODUCT": "$product",
-  "DEVICE": "$device",
-  "VERSION.RELEASE": "$version_release",
-  "ID": "$id",
-  "VERSION.INCREMENTAL": "$version_incremental",
-  "TYPE": "$type",
-  "TAGS": "$tags",
-  "VERSION.SECURITY_PATCH": "$security_patch",
-  "VERSION.DEVICE_INITIAL_SDK_INT": "21"
-}
-EOF
-          done
+            {
+              "MANUFACTURER": "$manufacturer",
+              "MODEL": "$model",
+              "FINGERPRINT": "$fingerprint",
+              "BRAND": "$brand",
+              "PRODUCT": "$product",
+              "DEVICE": "$device",
+              "VERSION.RELEASE": "$version_release",
+              "ID": "$id",
+              "VERSION.INCREMENTAL": "$version_incremental",
+              "TYPE": "$type",
+              "TAGS": "$tags",
+              "VERSION.SECURITY_PATCH": "$security_patch",
+              "VERSION.DEVICE_INITIAL_SDK_INT": "21"
+            }
+            EOF
+            done
 
       - name: Create a GitHub Release
         uses: actions/create-release@v1
