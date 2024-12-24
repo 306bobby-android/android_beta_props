@@ -39,16 +39,16 @@ jobs:
               system_img_path=$(find "downloads/extracted/$filename/inner" -name system.img)
               if [ -n "$system_img_path" ]; then
                 mkdir -p downloads/extracted/system_mount
-                simg2img "$system_img_path" downloads/extracted/system.raw
-                mkdir downloads/extracted/system_mount_temp
-                sudo mount -o loop downloads/extracted/system.raw downloads/extracted/system_mount_temp
+                sudo mount -o ro "$system_img_path" downloads/extracted/system_mount
+                mkdir -p "downloads/$filename"
 
-                if [ -f downloads/extracted/system_mount_temp/build.prop ]; then
-                  cp downloads/extracted/system_mount_temp/build.prop downloads/extracted/
+                if [ -f downloads/extracted/system_mount/system/build.prop ]; then
+                  sudo cp downloads/extracted/system_mount/system/build.prop downloads/$filename/
+                  chmod a+rwx downloads/$filename/build.prop
                 fi
 
-                sudo umount downloads/extracted/system_mount_temp
-                rm -r downloads/extracted/system_mount_temp downloads/extracted/system.raw
+                sudo umount downloads/extracted/system_mount
+                rm -r downloads/extracted/system_mount
               fi
             fi
           done < links.txt
@@ -56,7 +56,7 @@ jobs:
       - name: Process build.prop files
         run: |
           mkdir -p build_props
-          find downloads/extracted -name build.prop | while read -r build_prop_path; do
+          find downloads/*/ -name build.prop | while read -r build_prop_path; do
             codename=$(basename $(dirname "$build_prop_path"))
             manufacturer=$(grep -m 1 'ro.product.manufacturer=' "$build_prop_path" | cut -d= -f2)
             model=$(grep -m 1 'ro.product.model=' "$build_prop_path" | cut -d= -f2)
