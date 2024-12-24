@@ -1,4 +1,4 @@
-name: Extract Build Props
+name: Extract A16 Pixel Beta Build Props
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
         id: fetch_links
         run: |
           curl -s https://developer.android.com/about/versions/16/download | \
-          grep -oP '(?<=href="https://developer.android.com)[^"]*\.zip' > links.txt
+          grep -oP '(?<=href=")[^"]*\.zip' > links.txt
 
       - name: Download and extract build.prop
         run: |
