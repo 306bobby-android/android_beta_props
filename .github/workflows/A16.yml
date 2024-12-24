@@ -30,24 +30,24 @@ jobs:
             zipfile=$(basename "$link")
             filename="${zipfile%.*}"
             wget -q "$link" -O "downloads/$zipfile"
-            mkdir -p "downloads/extracted/$filename"
-            unzip -q -j "downloads/$zipfile" -d "downloads/extracted/$filename"
+            mkdir -p "extracted/$filename"
+            unzip -q -j "downloads/$zipfile" -d "extracted/$filename"
 
-            inner_zip=$(find "downloads/extracted/$filename" -name '*.zip')
+            inner_zip=$(find "extracted/$filename" -name '*.zip')
             if [ -n "$inner_zip" ]; then
-              unzip -q -j "$inner_zip" -d "downloads/extracted/$filename/inner"
-              system_img_path=$(find "downloads/extracted/$filename/inner" -name system.img)
+              unzip -q -j "$inner_zip" -d "extracted/$filename/inner"
+              system_img_path=$(find "extracted/$filename/inner" -name system.img)
               if [ -n "$system_img_path" ]; then
-                mkdir -p downloads/extracted/system_mount
-                sudo mount -o ro "$system_img_path" downloads/extracted/system_mount
-                mkdir -p "downloads/$filename"
+                mkdir -p extracted/system_mount
+                sudo mount -o ro "$system_img_path" extracted/system_mount
+                mkdir -p "$filename"
 
-                if [ -f downloads/extracted/system_mount/system/build.prop ]; then
-                  sudo cp downloads/extracted/system_mount/system/build.prop downloads/$filename/
+                if [ -f extracted/system_mount/system/build.prop ]; then
+                  sudo cp extracted/system_mount/system/build.prop $filename/
                 fi
 
-                sudo umount downloads/extracted/system_mount
-                rm -r downloads/extracted/system_mount
+                sudo umount extracted/system_mount
+                rm -rf downloads
               fi
             fi
           done < links.txt
