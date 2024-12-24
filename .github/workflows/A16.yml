@@ -27,13 +27,15 @@ jobs:
           mkdir -p downloads
           mkdir -p downloads/extracted
           while read -r link; do
-            filename=$(basename "$link")
-            wget -q "$link" -O "downloads/$filename"
-            unzip -q "downloads/$filename" -d "downloads/extracted/$filename"
+            zipfile=$(basename "$link")
+            filename="${zipfile%.*}"
+            wget -q "$link" -O "downloads/$zipfile"
+            mkdir -p "downloads/extracted/$filename"
+            unzip -q -j "downloads/$zipfile" -d "downloads/extracted/$filename"
 
             inner_zip=$(find "downloads/extracted/$filename" -name '*.zip')
             if [ -n "$inner_zip" ]; then
-              unzip -q "$inner_zip" -d "downloads/extracted/$filename/inner"
+              unzip -q -j "$inner_zip" -d "downloads/extracted/$filename/inner"
               system_img_path=$(find "downloads/extracted/$filename/inner" -name system.img)
               if [ -n "$system_img_path" ]; then
                 mkdir -p downloads/extracted/system_mount
