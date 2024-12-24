@@ -1,0 +1,106 @@
+name: Extract A16 Pixel Beta Build Props
+
+on:
+  workflow_dispatch:
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip simg2img
+
+      - name: Fetch Android download links
+        id: fetch_links
+        run: |
+          curl -s https://developer.android.com/about/versions/16/download | \
+          grep -oP '(?<=href="https://developer.android.com)[^"].*\.zip' > links.txt
+
+      - name: Download and extract build.prop
+        run: |
+          mkdir -p downloads
+          while read -r link; do
+            filename=$(basename "$link")
+            wget -q "$link" -O "downloads/$filename"
+            unzip -q "downloads/$filename" -d "downloads/extracted/$filename"
+
+            inner_zip=$(find "downloads/extracted/$filename" -name '*.zip')
+            if [ -n "$inner_zip" ]; then
+              unzip -q "$inner_zip" -d "downloads/extracted/$filename/inner"
+              vendor_img_path=$(find "downloads/extracted/$filename/inner" -name vendor.img)
+              if [ -n "$vendor_img_path" ]; then
+                mkdir -p downloads/extracted/vendor_mount
+                simg2img "$vendor_img_path" downloads/extracted/vendor.raw
+                mkdir downloads/extracted/vendor_mount_temp
+                sudo mount -o loop downloads/extracted/vendor.raw downloads/extracted/vendor_mount_temp
+
+                if [ -f downloads/extracted/vendor_mount_temp/build.prop ]; then
+                  cp downloads/extracted/vendor_mount_temp/build.prop downloads/extracted/$filename.build.prop
+                fi
+
+                sudo umount downloads/extracted/vendor_mount_temp
+                rm -r downloads/extracted/vendor_mount_temp downloads/extracted/vendor.raw
+              fi
+            fi
+          done < links.txt
+
+      - name: Process build.prop files
+        run: |
+          mkdir -p build_props
+          find downloads/extracted -name '*.build.prop' | while read -r build_prop_path; do
+            codename=$(basename $(dirname "$build_prop_path"))
+            manufacturer=$(grep -m 1 'ro.product.manufacturer=' "$build_prop_path" | cut -d= -f2)
+            model=$(grep -m 1 'ro.product.model=' "$build_prop_path" | cut -d= -f2)
+            fingerprint=$(grep -m 1 'ro.build.fingerprint=' "$build_prop_path" | cut -d= -f2)
+            brand=$(grep -m 1 'ro.product.brand=' "$build_prop_path" | cut -d= -f2)
+            product=$(grep -m 1 'ro.product.name=' "$build_prop_path" | cut -d= -f2)
+            device=$(grep -m 1 'ro.product.device=' "$build_prop_path" | cut -d= -f2)
+            version_release=$(grep -m 1 'ro.build.version.release=' "$build_prop_path" | cut -d= -f2)
+            id=$(grep -m 1 'ro.build.id=' "$build_prop_path" | cut -d= -f2)
+            version_incremental=$(grep -m 1 'ro.build.version.incremental=' "$build_prop_path" | cut -d= -f2)
+            type=$(grep -m 1 'ro.build.type=' "$build_prop_path" | cut -d= -f2)
+            tags=$(grep -m 1 'ro.build.tags=' "$build_prop_path" | cut -d= -f2)
+            security_patch=$(grep -m 1 'ro.build.version.security_patch=' "$build_prop_path" | cut -d= -f2)
+
+            json_file="build_props/${codename}.json"
+
+            cat <<EOF > "$json_file"
+{
+  "MANUFACTURER": "$manufacturer",
+  "MODEL": "$model",
+  "FINGERPRINT": "$fingerprint",
+  "BRAND": "$brand",
+  "PRODUCT": "$product",
+  "DEVICE": "$device",
+  "VERSION.RELEASE": "$version_release",
+  "ID": "$id",
+  "VERSION.INCREMENTAL": "$version_incremental",
+  "TYPE": "$type",
+  "TAGS": "$tags",
+  "VERSION.SECURITY_PATCH": "$security_patch",
+  "VERSION.DEVICE_INITIAL_SDK_INT": "21"
+}
+EOF
+          done
+
+      - name: Create a GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ steps.fetch_links.outputs.id }}
+          release_name: ${{ steps.fetch_links.outputs.id }}
+          draft: false
+          prerelease: false
+
+      - name: Upload JSON files to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: build_props/*.json
+          asset_name: ${{ github.event.inputs.codename }}.json
+          asset_content_type: application/json
