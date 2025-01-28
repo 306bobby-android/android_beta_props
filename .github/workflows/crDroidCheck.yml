@@ -1,0 +1,82 @@
+name: Daily Check and Run
+
+on:
+  schedule:
+    - cron: "0 20 * * *" # Runs every day at midnight UTC
+
+jobs:
+  check-and-trigger:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v3
+
+      - name: Read RELEASE IDs from main branch
+        id: read_release
+        run: |
+          if [ -f RELEASEA16 ]; then
+            RELEASE_IDA16=$(cat RELEASEA16 | tr -d '\n')
+            echo "RELEASE_IDA16=$RELEASE_IDA16" >> $GITHUB_ENV
+          else
+            echo "Error: RELEASEA16 file not found in the repository!"
+            exit 1
+          fi
+          if [ -f RELEASEA15 ]; then
+            RELEASE_IDA15=$(cat RELEASEA15 | tr -d '\n')
+            echo "RELEASE_IDA15=$RELEASE_IDA15" >> $GITHUB_ENV
+          else
+            echo "Error: RELEASEA15 file not found in the repository!"
+            exit 1
+          fi
+
+
+      - name: Fetch Build ID from Android Developer Page
+        id: fetch_build_id
+        run: |
+          BUILD_IDA16=$(curl -s https://developer.android.com/about/versions/16/download | \
+          xmllint --html --xpath "/html/body/section/section/main/devsite-content/article/div[3]/div[1]/table/tbody/tr[2]/td[2]/text()" - 2>/dev/null | tr -d '\n')
+          if [ -z "$BUILD_IDA16" ]; then
+            echo "Error: Failed to fetch BUILD_ID from the page."
+            exit 1
+          fi
+          echo "BUILD_IDA16=$BUILD_IDA16" >> $GITHUB_ENV
+
+          BUILD_IDA15=$(curl -s https://developer.android.com/about/versions/15/download | \
+          xmllint --html --xpath "/html/body/section/section/main/devsite-content/article/div[3]/div[1]/table/tbody/tr[2]/td[2]/text()" - 2>/dev/null | tr -d '\n')
+          if [ -z "$BUILD_IDA15" ]; then
+            echo "Error: Failed to fetch BUILD_ID from the page."
+            exit 1
+          fi
+          echo "BUILD_IDA15=$BUILD_IDA15" >> $GITHUB_ENV
+
+      - name: Compare IDs
+        id: compare_ids
+        run: |
+          if [ "$RELEASE_IDA16" != "$BUILD_IDA16" ]; then
+            echo "New build ID detected: $BUILD_IDA16"
+            echo "triggerA16=true" >> $GITHUB_ENV
+          else
+            echo "No new build ID detected."
+            echo "triggerA16=false" >> $GITHUB_ENV
+          if [ "$RELEASE_IDA15" != "$BUILD_IDA15" ]; then
+            echo "New build ID detected: $BUILD_IDA15"
+            echo "triggerA15=true" >> $GITHUB_ENV
+          else
+            echo "No new build ID detected."
+            echo "triggerA15=false" >> $GITHUB_ENV
+
+
+      - name: Trigger Build Script A15
+        if: env.triggerA15 == 'true'
+        run: |
+          echo "Triggering the A15 prop extraction."
+          gh workflow run "A15 certified props extraction"
+
+
+      - name: Trigger Build Script A16
+        if: env.triggerA16 == 'true'
+        run: |          
+          echo "Triggering the A16 prop extraction."
+          gh workflow run "A16 certified props extraction"
+
