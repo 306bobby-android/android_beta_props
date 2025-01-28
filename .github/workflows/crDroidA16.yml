@@ -141,6 +141,24 @@ jobs:
           path: build_props/
 
 
+      - name: Create or update RELEASE file with the ID
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Write the shared ID to the RELEASE file
+          echo "$last_id" > RELEASEA16
+          echo "Updated RELEASE file with ID: $last_id"
+
+          # Configure Git for committing
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit and push the updated RELEASE file to the main branch
+          git add RELEASE
+          git commit -m "Update RELEASE file with ID: $shared_id"
+          git push origin main --force
+
+
       - name: Create Release
         id: create-release
         uses: actions/create-release@v1
