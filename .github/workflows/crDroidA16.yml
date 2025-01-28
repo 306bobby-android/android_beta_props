@@ -154,8 +154,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           # Commit and push the updated RELEASE file to the main branch
-          git add RELEASE
-          git commit -m "Update RELEASE file with ID: $shared_id"
+          git add RELEASEA16
+          git commit -m "Update RELEASE file with ID: $last_id"
           git push origin main --force
 
 
