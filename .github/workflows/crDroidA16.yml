@@ -100,19 +100,19 @@ jobs:
       
           # Create the JSON file with the device name
           echo '{
-           "MANUFACTURER": "'"$manufacturer"'",
-           "MODEL": "'"$model"'",
-           "FINGERPRINT": "'"$fingerprint"'",
-           "BRAND": "'"$brand"'",
-           "PRODUCT": "'"$product"'",
-           "DEVICE": "'"$device"'",
-           "VERSION.RELEASE": "'"$version_release"'",
-           "ID": "'"$id"'",
-           "VERSION.INCREMENTAL": "'"$version_incremental"'",
-           "TYPE": "'"$type"'",
-           "TAGS": "'"$tags"'",
-           "VERSION.SECURITY_PATCH": "'"$security_patch"'",
-           "VERSION.DEVICE_INITIAL_SDK_INT": "21"
+              "MANUFACTURER": "'"$manufacturer"'",
+              "MODEL": "'"$model"'",
+              "FINGERPRINT": "'"$fingerprint"'",
+              "BRAND": "'"$brand"'",
+              "PRODUCT": "'"$product"'",
+              "DEVICE": "'"$device"'",
+              "VERSION.RELEASE": "'"$version_release"'",
+              "ID": "'"$id"'",
+              "VERSION.INCREMENTAL": "'"$version_incremental"'",
+              "TYPE": "'"$type"'",
+              "TAGS": "'"$tags"'",
+              "VERSION.SECURITY_PATCH": "'"$security_patch"'",
+              "VERSION.DEVICE_INITIAL_SDK_INT": "21"
           }' > "build_props/$codename.json"
                 last_id=$id
                 # Delete the processed build.prop file
