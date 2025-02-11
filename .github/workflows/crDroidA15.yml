@@ -134,30 +134,23 @@ jobs:
           fi
 
 
-      - name: Create or update RELEASE file with the ID
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Write the shared ID to the RELEASE file
-          echo "$last_id" > RELEASEA15
-          echo "Updated RELEASE file with ID: $last_id"
-
-          # Configure Git for committing
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Commit and push the updated RELEASE file to the main branch
-          git add RELEASEA15
-          git commit -m "Update RELEASE file with ID: $last_id"
-          git push origin main --force
-
-
       - name: Upload build.prop JSON files as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build_props
           path: build_props/
 
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.last_id }}
+          release_name: crDroid A15 ${{ env.last_id }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload .props Files
         run: |
