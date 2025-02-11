@@ -34,7 +34,7 @@ jobs:
         id: fetch_build_id
         run: |
           BUILD_IDA16=$(curl -s https://developer.android.com/about/versions/16/download | \
-          xmllint --html --xpath "/html/body/section/section/main/devsite-content/article/div[3]/div[1]/table/tbody/tr[2]/td[2]/text()" - 2>/dev/null | tr -d '\n')
+          grep -A1 '<td><b>Build</b></td>' | tail -n1 | sed -E 's/<td>([^<]+)<\/td>/\1/' | tr -d '\n')
           if [ -z "$BUILD_IDA16" ]; then
             echo "Error: Failed to fetch BUILD_ID from the page."
             exit 1
@@ -42,7 +42,7 @@ jobs:
           echo "BUILD_IDA16=$BUILD_IDA16" >> $GITHUB_ENV
 
           BUILD_IDA15=$(curl -s https://developer.android.com/about/versions/15/download | \
-          xmllint --html --xpath "/html/body/section/section/main/devsite-content/article/div[3]/div[1]/table/tbody/tr[2]/td[2]/text()" - 2>/dev/null | tr -d '\n')
+          grep -A1 '<td><b>Build</b></td>' | tail -n1 | sed -E 's/<td>([^<]+)<\/td>/\1/' | tr -d '\n')
           if [ -z "$BUILD_IDA15" ]; then
             echo "Error: Failed to fetch BUILD_ID from the page."
             exit 1
