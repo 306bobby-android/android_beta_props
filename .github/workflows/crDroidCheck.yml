@@ -13,8 +13,8 @@ jobs:
       - name: Set up Git repository
         uses: actions/checkout@v3
 
-      - name: Read RELEASE IDs from main branch
-        id: read_release
+      - name: Grab IDs
+        id: grab_id
         run: |
           if [ -f RELEASEA16 ]; then
             RELEASE_IDA16=$(cat RELEASEA16 | tr -d '\n')
@@ -29,10 +29,6 @@ jobs:
             echo "Error: RELEASEA15 file not found in the repository!"
           fi
 
-
-      - name: Fetch Build ID from Android Developer Page
-        id: fetch_build_id
-        run: |
           BUILD_IDA16=$(curl -s https://developer.android.com/about/versions/16/download | \
           grep -A1 '<td><b>Build</b></td>' | tail -n1 | sed -E 's/<td>([^<]+)<\/td>/\1/' | tr -d '\n')
           if [ -z "$BUILD_IDA16" ]; then
@@ -49,14 +45,11 @@ jobs:
           fi
           echo "BUILD_IDA15=$BUILD_IDA15" >> $GITHUB_ENV
 
-      - name: Compare IDs
-        id: compare_ids
-        run: |
           if [ "$RELEASE_IDA16" != "$BUILD_IDA16" ]; then
             echo "New build ID detected: $BUILD_IDA16"
             echo "triggerA16=true" >> $GITHUB_ENV
-            echo "$RELEASE_IDA16" > RELEASEA16
-            echo "Updated RELEASE file with ID: $last_id"
+            echo "$BUILD_IDA16" > RELEASEA16
+            echo "Updated RELEASE file with ID: $BUILD_IDA16"
           else
             echo "No new build ID detected."
             echo "triggerA16=false" >> $GITHUB_ENV
@@ -64,8 +57,8 @@ jobs:
           if [ "$RELEASE_IDA15" != "$BUILD_IDA15" ]; then
             echo "New build ID detected: $BUILD_IDA15"
             echo "triggerA15=true" >> $GITHUB_ENV
-            echo "$RELEASE_IDA15" > RELEASEA15
-            echo "Updated RELEASE file with ID: $last_id"
+            echo "$BUILD_IDA15" > RELEASEA15
+            echo "Updated RELEASE file with ID: $BUILD_IDA15"
           else
             echo "No new build ID detected."
             echo "triggerA15=false" >> $GITHUB_ENV
