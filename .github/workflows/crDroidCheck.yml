@@ -60,6 +60,7 @@ jobs:
           else
             echo "No new build ID detected."
             echo "triggerA16=false" >> $GITHUB_ENV
+          fi
           if [ "$RELEASE_IDA15" != "$BUILD_IDA15" ]; then
             echo "New build ID detected: $BUILD_IDA15"
             echo "triggerA15=true" >> $GITHUB_ENV
@@ -68,6 +69,7 @@ jobs:
           else
             echo "No new build ID detected."
             echo "triggerA15=false" >> $GITHUB_ENV
+          fi
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
