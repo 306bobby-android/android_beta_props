@@ -75,6 +75,8 @@ jobs:
 
       - name: Trigger Build Script A15
         if: env.triggerA15 == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Triggering the A15 prop extraction."
           gh workflow run "A15 certified props extraction"
@@ -82,6 +84,8 @@ jobs:
 
       - name: Trigger Build Script A16
         if: env.triggerA16 == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |          
           echo "Triggering the A16 prop extraction."
           gh workflow run "A16 certified props extraction"
