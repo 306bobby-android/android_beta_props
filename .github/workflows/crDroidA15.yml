@@ -153,22 +153,11 @@ jobs:
 
 
       - name: Upload build.prop JSON files as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build_props
           path: build_props/
 
-
-      - name: Create Release
-        id: create-release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.last_id }}
-          release_name: crDroid A15 ${{ env.last_id }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload .props Files
         run: |

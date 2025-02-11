@@ -20,14 +20,12 @@ jobs:
             echo "RELEASE_IDA16=$RELEASE_IDA16" >> $GITHUB_ENV
           else
             echo "Error: RELEASEA16 file not found in the repository!"
-            exit 1
           fi
           if [ -f RELEASEA15 ]; then
             RELEASE_IDA15=$(cat RELEASEA15 | tr -d '\n')
             echo "RELEASE_IDA15=$RELEASE_IDA15" >> $GITHUB_ENV
           else
             echo "Error: RELEASEA15 file not found in the repository!"
-            exit 1
           fi
 
 
@@ -56,15 +54,27 @@ jobs:
           if [ "$RELEASE_IDA16" != "$BUILD_IDA16" ]; then
             echo "New build ID detected: $BUILD_IDA16"
             echo "triggerA16=true" >> $GITHUB_ENV
+            echo "$RELEASE_IDA16" > RELEASEA16
+            echo "Updated RELEASE file with ID: $last_id"
           else
             echo "No new build ID detected."
             echo "triggerA16=false" >> $GITHUB_ENV
           if [ "$RELEASE_IDA15" != "$BUILD_IDA15" ]; then
             echo "New build ID detected: $BUILD_IDA15"
             echo "triggerA15=true" >> $GITHUB_ENV
+            echo "$RELEASE_IDA15" > RELEASEA15
+            echo "Updated RELEASE file with ID: $last_id"
           else
             echo "No new build ID detected."
             echo "triggerA15=false" >> $GITHUB_ENV
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit and push the updated RELEASE file to the main branch
+          git add RELEASEA16
+          git commit -m "Update RELEASE file with ID: $last_id"
+          git push origin main --force
 
 
       - name: Trigger Build Script A15
