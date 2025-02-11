@@ -20,13 +20,13 @@ jobs:
             RELEASE_IDA16=$(cat RELEASEA16 | tr -d '\n')
             echo "RELEASE_IDA16=$RELEASE_IDA16" >> $GITHUB_ENV
           else
-            echo "Error: RELEASEA16 file not found in the repository!"
+            echo "Warning: RELEASEA16 file not found in the repository!"
           fi
           if [ -f RELEASEA15 ]; then
             RELEASE_IDA15=$(cat RELEASEA15 | tr -d '\n')
             echo "RELEASE_IDA15=$RELEASE_IDA15" >> $GITHUB_ENV
           else
-            echo "Error: RELEASEA15 file not found in the repository!"
+            echo "Warning: RELEASEA15 file not found in the repository!"
           fi
 
           BUILD_IDA16=$(curl -s https://developer.android.com/about/versions/16/download | \
@@ -49,7 +49,12 @@ jobs:
             echo "New build ID detected: $BUILD_IDA16"
             echo "triggerA16=true" >> $GITHUB_ENV
             echo "$BUILD_IDA16" > RELEASEA16
-            echo "Updated RELEASE file with ID: $BUILD_IDA16"
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add RELEASEA16
+            git commit -m "Update RELEASE file with ID: $BUILD_IDA16"
+            git push origin main --force
+            echo "Updated A16 RELEASE file with ID: $BUILD_IDA16"
           else
             echo "No new build ID detected."
             echo "triggerA16=false" >> $GITHUB_ENV
@@ -58,19 +63,16 @@ jobs:
             echo "New build ID detected: $BUILD_IDA15"
             echo "triggerA15=true" >> $GITHUB_ENV
             echo "$BUILD_IDA15" > RELEASEA15
-            echo "Updated RELEASE file with ID: $BUILD_IDA15"
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add RELEASEA15
+            git commit -m "Update RELEASE file with ID: $BUILD_IDA15"
+            git push origin main --force
+            echo "Updated A15 RELEASE file with ID: $BUILD_IDA15"
           else
             echo "No new build ID detected."
             echo "triggerA15=false" >> $GITHUB_ENV
           fi
-
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Commit and push the updated RELEASE file to the main branch
-          git add RELEASEA16
-          git commit -m "Update RELEASE file with ID: $last_id"
-          git push origin main --force
 
 
       - name: Trigger Build Script A15
