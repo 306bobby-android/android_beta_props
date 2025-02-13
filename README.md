@@ -1,5 +1,5 @@
 # Automated Beta Props Extraction
-Within the releases, you will find the A15 and A16 beta props for Play Integrity
+Within the [releases](https://github.com/306bobby-android/android_beta_props/releases), you will find the A15 and A16 beta props for Play Integrity
 
 The format is for crDroid certified props
 
