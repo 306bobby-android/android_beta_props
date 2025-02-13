@@ -1,7 +1,6 @@
 name: Daily Check and Run
 
 on:
-  workflow_dispatch:
   schedule:
     - cron: "0 20 * * *" # Runs every day at midnight UTC
 
