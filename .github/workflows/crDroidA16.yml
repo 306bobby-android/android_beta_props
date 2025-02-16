@@ -180,7 +180,7 @@ jobs:
         id: create-release-pif
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ env.last_id }}
+          tag_name: PIF ${{ env.last_id }}
           release_name: PIF A16 ${{ env.last_id }}
           draft: false
           prerelease: false
