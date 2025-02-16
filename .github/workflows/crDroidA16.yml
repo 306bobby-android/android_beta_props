@@ -82,6 +82,7 @@ jobs:
         id: process_props
         run: |
           mkdir -p build_props
+          mkdir -p pif_build_props
           # Adjusted to find build.prop files in the current structure
           find . -type f -name "build.prop" | while read -r build_prop_path; do
             codename=$(basename $(dirname "$build_prop_path"))
@@ -98,7 +99,7 @@ jobs:
             tags=$(sudo grep -m 1 'ro.vendor.build.tags=' "$build_prop_path" | cut -d= -f2)
             security_patch=$(sudo grep -m 1 'ro.vendor.build.security_patch=' "$build_prop_path" | cut -d= -f2)
       
-          # Create the JSON file with the device name
+          # Create the JSON file with the device name FOR crDroid
           echo '{
               "MANUFACTURER": "'"$manufacturer"'",
               "MODEL": "'"$model"'",
@@ -114,11 +115,28 @@ jobs:
               "VERSION.SECURITY_PATCH": "'"$security_patch"'",
               "VERSION.DEVICE_INITIAL_SDK_INT": "21"
           }' > "build_props/$codename.json"
+
+          # Create the JSON file with the device name FOR PIF
+          echo '{
+              "TYPE": "'"$type"'",
+              "TAGS": "'"$tags"'",
+              "ID": "'"$id"'",
+              "BRAND": "'"$brand"'",
+              "DEVICE": "'"$device"'",
+              "FINGERPRINT": "'"$fingerprint"'",
+              "MANUFACTURER": "'"$manufacturer"'",
+              "MODEL": "'"$model"'",
+              "PRODUCT": "'"$product"'",
+              "RELEASE": "'"$version_release"'",
+              "INCREMENTAL": "'"$version_incremental"'",
+              "SECURITY_PATCH": "'"$security_patch"'",
+              "DEVICE_INITIAL_SDK_INT": "35",
+              "DEBUG" : "false"
+          }' > "pif_build_props/$codename.json"
                 last_id=$id
                 # Delete the processed build.prop file
                 rm -f "$build_prop_path"
               done
-          echo "Computed last_id: $last_id"
 
       - name: Grab ID for Release
         run: |
@@ -140,8 +158,15 @@ jobs:
           name: build_props
           path: build_props/
 
-      - name: Create Release
-        id: create-release
+      
+      - name: Upload build.prop PIF JSON files as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pif_build_props
+          path: pif_build_props/
+
+      - name: Create crDroid Release
+        id: create-release-cr
         uses: actions/create-release@v1
         with:
           tag_name: ${{ env.last_id }}
@@ -151,10 +176,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create PIF Release
+        id: create-release-pif
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.last_id }}
+          release_name: PIF A16 ${{ env.last_id }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload .props Files
         run: |
-            UPLOAD_URL="${{ steps.create-release.outputs.upload_url }}"
-            UPLOAD_URL="${UPLOAD_URL%\{*}"  # strip the {?name,label} template
+            UPLOAD_URL-cr="${{ steps.create-release-cr.outputs.upload_url }}"
+            UPLOAD_URL-cr="${UPLOAD_URL-cr%\{*}"  # strip the {?name,label} template
+            UPLOAD_URL-pif="${{ steps.create-release-cr.outputs.upload_url }}"
+            UPLOAD_URL-pif="${UPLOAD_URL-pif%\{*}"  # strip the {?name,label} template
         
             for file in build_props/*.json; do
               echo "Uploading $file..."
@@ -162,7 +200,15 @@ jobs:
                 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                 -H "Content-Type: application/octet-stream" \
                 --data-binary @"$file" \
-                "$UPLOAD_URL?name=$(basename "$file")"
+                "$UPLOAD_URL-cr?name=$(basename "$file")"
             done
 
+            for file in build_props/*.json; do
+              echo "Uploading $file..."
+              curl -X POST \
+                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary @"$file" \
+                "$UPLOAD_URL-pif?name=$(basename "$file")"
+            done
 
