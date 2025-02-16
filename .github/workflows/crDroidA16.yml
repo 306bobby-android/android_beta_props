@@ -143,6 +143,7 @@ jobs:
           # Get the shared ID from one of the JSON files
           shared_id=$(jq -r '.ID' $(find build_props -type f -name "*.json" | head -n 1))
           echo "last_id=$shared_id" >> $GITHUB_ENV
+          echo "pif_last_id=$shared_id-PIF" >> $GITHUB_ENV
           echo "Computed last_id: $last_id"
 
           # Ensure the ID was successfully retrieved
@@ -180,7 +181,7 @@ jobs:
         id: create-release-pif
         uses: actions/create-release@v1
         with:
-          tag_name: PIF ${{ env.last_id }}
+          tag_name: ${{ env.pif_last_id }}
           release_name: PIF A16 ${{ env.last_id }}
           draft: false
           prerelease: false
