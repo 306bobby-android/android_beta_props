@@ -192,7 +192,7 @@ jobs:
         run: |
             UPLOAD_URL_CR="${{ steps.create-release-cr.outputs.upload_url }}"
             UPLOAD_URL_CR="${UPLOAD_URL_CR%\{*}"  # strip the {?name,label} template
-            UPLOAD_URL_PIF="${{ steps.create-release-cr.outputs.upload_url }}"
+            UPLOAD_URL_PIF="${{ steps.create-release-pif.outputs.upload_url }}"
             UPLOAD_URL_PIF="${UPLOAD_URL_PIF%\{*}"  # strip the {?name,label} template
         
             for file in build_props/*.json; do
@@ -201,15 +201,15 @@ jobs:
                 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                 -H "Content-Type: application/octet-stream" \
                 --data-binary @"$file" \
-                "$UPLOAD_URL-cr?name=$(basename "$file")"
+                "$UPLOAD_URL_CR?name=$(basename "$file")"
             done
 
-            for file in build_props/*.json; do
+            for file in pif_build_props/*.json; do
               echo "Uploading $file..."
               curl -X POST \
                 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                 -H "Content-Type: application/octet-stream" \
                 --data-binary @"$file" \
-                "$UPLOAD_URL-pif?name=$(basename "$file")"
+                "$UPLOAD_URL_PIF?name=$(basename "$file")"
             done
 
