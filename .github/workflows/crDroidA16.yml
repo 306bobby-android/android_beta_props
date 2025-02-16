@@ -190,10 +190,10 @@ jobs:
 
       - name: Upload .props Files
         run: |
-            UPLOAD_URL-cr="${{ steps.create-release-cr.outputs.upload_url }}"
-            UPLOAD_URL-cr="${UPLOAD_URL-cr%\{*}"  # strip the {?name,label} template
-            UPLOAD_URL-pif="${{ steps.create-release-cr.outputs.upload_url }}"
-            UPLOAD_URL-pif="${UPLOAD_URL-pif%\{*}"  # strip the {?name,label} template
+            UPLOAD_URL_CR="${{ steps.create-release-cr.outputs.upload_url }}"
+            UPLOAD_URL_CR="${UPLOAD_URL_CR%\{*}"  # strip the {?name,label} template
+            UPLOAD_URL_PIF="${{ steps.create-release-cr.outputs.upload_url }}"
+            UPLOAD_URL_PIF="${UPLOAD_URL_PIF%\{*}"  # strip the {?name,label} template
         
             for file in build_props/*.json; do
               echo "Uploading $file..."
