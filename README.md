@@ -1,7 +1,7 @@
 # Automated Beta Props Extraction
 Within the [releases](https://github.com/306bobby-android/android_beta_props/releases), you will find the A15 and A16 beta props for Play Integrity
 
-The format is for crDroid certified props
+The format is for crDroid certified props for releases marked crDroid, and normal PIF/PIFork for the PIF marked
 
 The Google Developer page is checked daily at 3PM EST (8PM UTC) for updates
 
